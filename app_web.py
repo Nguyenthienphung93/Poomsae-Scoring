@@ -1913,25 +1913,15 @@ function pageReady(row,readyText){
 
     let judgeStatus = (STATE.judge_status || '').toLowerCase();
 
-    // Nếu là Pair/Team OBO, lấy đúng trạng thái Judge hiện tại.
-    // Nếu máy nào chưa cập nhật kịp, fallback kiểm tra toàn bộ Judge có ai Blue Done chưa.
-    let currentJudgeStatus = String(row[STATE.judge_id] || '').trim().toLowerCase();
-
-    let anyBlueDone = false;
-    for(let i = 1; i <= 7; i++){
-        let st = String(row[`Judge ${i}`] || '').trim().toLowerCase();
-        if(st === 'blue 1 done' || st === 'blue 2 done'){
-            anyBlueDone = true;
-            break;
-        }
-    }
+    // =========================
+    // OBO: chỉ lấy trạng thái đúng Judge hiện tại
+    // =========================
+    let currentJudgeStatus = String(
+        row[STATE.judge_id] || ''
+    ).trim().toLowerCase();
 
     if(currentJudgeStatus){
         judgeStatus = currentJudgeStatus;
-    }
-
-    if(isObo && anyBlueDone && (judgeStatus === 'ready' || judgeStatus === 'start')){
-        judgeStatus = 'blue 1 done';
     }
 
     let isPoomsaeReady = readyText.includes('POOMSAE READY');
