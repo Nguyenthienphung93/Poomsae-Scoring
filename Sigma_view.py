@@ -799,7 +799,29 @@ tr:hover td{background:#102b46}
     font-weight:900;
 }
 .sigma-svg-code-box{fill:#06192b;stroke:#ffd34d;stroke-width:2}
-.sigma-svg-code{fill:#ffd34d;font-size:14px;font-weight:900}
+.sigma-svg-code{
+    fill:#ffd34d;
+    font-size:18px;
+    font-weight:900;
+}
+
+.sigma-svg-winner-code{
+    fill:#001b33;
+    font-size:18px;
+    font-weight:900;
+}
+
+.sigma-svg-winner-code-blue{
+    fill:white;
+    font-size:18px;
+    font-weight:900;
+}
+
+.sigma-svg-winner-code-red{
+    fill:white;
+    font-size:18px;
+    font-weight:900;
+}
 .sigma-svg-code-box.winner{fill:#ffd34d;stroke:#ffd34d}
 
 .sigma-svg-code-box.winner-blue{
@@ -4135,7 +4157,7 @@ function drawMatchCode(
     }
 
     const boxW = hasWinner
-        ? Math.max(cfg.codeW, isChampion ? 92 : 58)
+        ? Math.max(cfg.codeW, isChampion ? 120 : 96)
         : cfg.codeW;
 
     svg.appendChild(svgEl("rect", {
@@ -4738,13 +4760,13 @@ function buildSigmaBracket(athletes){
     playerH:dynamicPlayerH,
     seedW:48,
     nocW:66,
-    codeW:48,
-    codeH:30,
+    codeW:96,
+    codeH:42,
     startY:bracketSize <= 16 ? 86 : 70,
     rowGap:dynamicRowGap,
     jointOffset:36,
     codeGap:38,
-    playerGap:4
+    playerGap:8
   };
 
   box.innerHTML = `<svg id="sigmaSvg" viewBox="0 0 ${svgW} ${svgH}" class="sigma-svg"></svg>`;
@@ -4982,12 +5004,12 @@ function makePrintDocumentHtml(printTitle, contentHtml, printMode){
 
     .sigma-svg-winner-code-champion{
         fill:#ffffff!important;
-        font-size:15px!important;
+        font-size:18px!important;
         font-weight:900!important;
-        paint-order:stroke!important;
-        stroke:#5b4100!important;
-        stroke-width:2px!important;
-        stroke-linejoin:round!important;
+        paint-order:stroke;
+        stroke:#5b4100;
+        stroke-width:2px;
+        stroke-linejoin:round;
     }
 
     .sigma-svg-champion-cup{
