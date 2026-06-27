@@ -638,6 +638,40 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#07111f;color:#e
     color:#9bb7cf;
     font-size:12px;
     font-weight:700;
+    line-height:1.35;
+}
+
+.medal-unit-main{
+    display:block;
+    color:#ffd34d;
+    font-size:15px;
+    font-weight:900;
+    margin-bottom:4px;
+}
+
+.medal-unit-total{
+    color:#ffffff;
+    font-weight:900;
+}
+
+.medal-unit-male{
+    color:#7fe7ff;
+    font-weight:800;
+}
+
+.medal-unit-female{
+    color:#ffb3d1;
+    font-weight:800;
+}
+
+.medal-unit-other{
+    color:#cfe6ff;
+    font-weight:800;
+}
+
+.medal-unit-coach{
+    color:#b8ff7a;
+    font-weight:800;
 }
 
 .group{margin-bottom:10px;border:1px solid #203b57;border-radius:12px;overflow:hidden;background:#0c2135}
@@ -1098,19 +1132,99 @@ body.sidebar-collapsed-desktop .sidebar-toggle-btn{
     min-width:max-content;
 }
 
+/* ===== Medal Standings: đóng băng header 3 tầng, không bị hở ===== */
+
+#medalStandingsTable{
+    border-collapse:separate!important;
+    border-spacing:0!important;
+}
+
+/* Ép chiều cao 3 hàng header cố định để rowspan hai bên khớp tuyệt đối */
+#medalStandingsTable thead tr:nth-child(1){
+    height:36px!important;
+}
+
+#medalStandingsTable thead tr:nth-child(2){
+    height:32px!important;
+}
+
+#medalStandingsTable thead tr:nth-child(3){
+    height:32px!important;
+}
+
+/* Tất cả ô header không dùng padding lớn nữa, tránh tạo khoảng hở */
 #medalStandingsTable thead th{
-    position:sticky;
-    top:0;
-    z-index:6;
+    position:sticky!important;
+    padding:0 8px!important;
+    line-height:1.15!important;
+    box-sizing:border-box!important;
+    vertical-align:middle!important;
+    background-clip:padding-box!important;
 }
 
+/* Hàng 1: Recognized / Freestyle + Unit/NOC + Total */
+#medalStandingsTable thead tr:nth-child(1) th{
+    top:0!important;
+    height:36px!important;
+    z-index:60!important;
+}
+
+/* Hàng 2: Individual / Pair / Team */
+#medalStandingsTable thead tr:nth-child(2) th{
+    top:36px!important;
+    height:32px!important;
+    z-index:58!important;
+}
+
+/* Hàng 3: Female Cadet / Male Cadet / ... */
+#medalStandingsTable thead tr:nth-child(3) th{
+    top:68px!important;
+    height:32px!important;
+    z-index:56!important;
+}
+
+/* Các ô rowspan 3 hàng phải cao đúng bằng 36 + 32 + 32 = 100px */
+#medalStandingsTable .medal-standing-fixed-head,
+#medalStandingsTable .medal-standing-summary-head{
+    height:100px!important;
+    min-height:100px!important;
+    top:0!important;
+    z-index:70!important;
+}
+
+/* Unit/NOC header vừa sticky dọc vừa sticky ngang */
 #medalStandingsTable .medal-standing-fixed-head{
-    z-index:30;
+    position:sticky!important;
+    left:0!important;
+    z-index:90!important;
 }
 
-#medalStandingsTable .medal-standing-unit-cell{
-    z-index:12;
+/* Cột Unit/NOC body sticky ngang */
+#medalStandingsTable tbody .medal-standing-unit-cell{
+    position:sticky!important;
+    left:0!important;
+    z-index:35!important;
+    background:#0b1d30!important;
 }
+
+/* Nền chắc để không bị xuyên/chừa hở khi kéo */
+#medalStandingsTable .medal-standing-head-type{
+    background:#164d82!important;
+}
+
+#medalStandingsTable .medal-standing-head-division{
+    background:#1fd0a6!important;
+}
+
+#medalStandingsTable .medal-standing-head-age{
+    background:#0b2947!important;
+}
+
+#medalStandingsTable .medal-standing-fixed-head,
+#medalStandingsTable .medal-standing-summary-head{
+    background:#123c67!important;
+}
+
 
 /* Mobile / Tablet: menu trượt từ bên trái */
 @media(max-width:900px){
@@ -1845,6 +1959,8 @@ body.sigma-result-mode.sidebar-open .sidebar-toggle-btn{
         max-width:360px!important;
     }
 }
+
+
 
   </style>
 </head>
@@ -3045,28 +3161,79 @@ function getDelegationStatsByNoc(){
         if(!stats[key]){
             stats[key] = {
                 noc:noc,
+
+                // Tổng toàn bộ người trong đoàn / tham gia
+                total:0,
+
+                // VĐV
                 athletes:0,
+                maleAthletes:0,
+                femaleAthletes:0,
+
+                // Coach
+                coaches:0,
+
+                // Người còn lại không phải VĐV/Coach
+                otherOfficials:0,
+
+                // Giữ lại để tương thích code cũ
+                otherAthletes:0,
                 delegation:0
             };
         }
 
+        stats[key].total += 1;
         stats[key].delegation += 1;
 
         const position = normalizeUpper(getRowAny(row, [
             "Position",
             "position",
             "Role",
-            "role"
+            "role",
+            "Duty",
+            "duty",
+            "Function",
+            "function"
         ]));
 
-        if(
+        const gender = normalizeUpper(getRowAny(row, [
+            "Gender",
+            "gender",
+            "Sex",
+            "sex"
+        ]));
+
+        const isCoach =
+            position.includes("COACH") ||
+            position.includes("TRAINER") ||
+            position.includes("HLV");
+
+        const isAthlete =
             position.includes("ATHLETE") ||
             position.includes("PLAYER") ||
             position.includes("COMPETITOR") ||
-            position === ""
-        ){
-            stats[key].athletes += 1;
+            position === "";
+
+        if(isCoach){
+            stats[key].coaches += 1;
+            return;
         }
+
+        if(isAthlete){
+            stats[key].athletes += 1;
+
+            if(gender.includes("MALE") && !gender.includes("FEMALE")){
+                stats[key].maleAthletes += 1;
+            }else if(gender.includes("FEMALE")){
+                stats[key].femaleAthletes += 1;
+            }else{
+                stats[key].otherAthletes += 1;
+            }
+
+            return;
+        }
+
+        stats[key].otherOfficials += 1;
     });
 
     return stats;
@@ -3080,11 +3247,21 @@ function makeMedalStandingEmptyRow(noc, delegationStats){
         noc:noc,
         noc_key:key,
         byDivision:{},
+
         totalGold:0,
         totalSilver:0,
         totalBronze:0,
+        totalMedal:0,
+
+        total:Number(stat.total || stat.delegation || 0),
         athletes:Number(stat.athletes || 0),
-        delegation:Number(stat.delegation || 0),
+        maleAthletes:Number(stat.maleAthletes || 0),
+        femaleAthletes:Number(stat.femaleAthletes || 0),
+        coaches:Number(stat.coaches || 0),
+        otherAthletes:Number(stat.otherAthletes || 0),
+        otherOfficials:Number(stat.otherOfficials || 0),
+        delegation:Number(stat.delegation || stat.total || 0),
+
         ranking:0
     };
 }
@@ -3164,13 +3341,30 @@ function buildMedalStandingsRows(){
 
     let rows = Object.values(rowsMap);
 
+    rows.forEach(row => {
+        row.totalMedal =
+            Number(row.totalGold || 0) +
+            Number(row.totalSilver || 0) +
+            Number(row.totalBronze || 0);
+    });
+
     rows.sort((a, b) => {
+        // 1. Vàng
         if(b.totalGold !== a.totalGold) return b.totalGold - a.totalGold;
+
+        // 2. Bạc
         if(b.totalSilver !== a.totalSilver) return b.totalSilver - a.totalSilver;
+
+        // 3. Đồng
         if(b.totalBronze !== a.totalBronze) return b.totalBronze - a.totalBronze;
 
-        if(a.athletes !== b.athletes) return a.athletes - b.athletes;
-        if(a.delegation !== b.delegation) return a.delegation - b.delegation;
+        // 4. Tổng toàn bộ huy chương
+        if(b.totalMedal !== a.totalMedal) return b.totalMedal - a.totalMedal;
+
+        // 5. Đoàn đông nhất
+        if(b.total !== a.total) return b.total - a.total;
+        if(b.athletes !== a.athletes) return b.athletes - a.athletes;
+        if(b.delegation !== a.delegation) return b.delegation - a.delegation;
 
         return String(a.noc).localeCompare(String(b.noc));
     });
@@ -3416,6 +3610,7 @@ function buildGroupedMedalStandingHeader(divisions){
                 <th class="medal-standing-summary-head" rowspan="3">Total Gold</th>
                 <th class="medal-standing-summary-head" rowspan="3">Total Silver</th>
                 <th class="medal-standing-summary-head" rowspan="3">Total Bronze</th>
+                <th class="medal-standing-summary-head" rowspan="3">Total Medal</th>
                 <th class="medal-standing-summary-head" rowspan="3">Ranking</th>
             </tr>
 
@@ -3484,9 +3679,17 @@ function renderMedalStandings(){
             const text = [
                 r.noc,
                 divisionText,
+                r.total,
+                r.athletes,
+                r.maleAthletes,
+                r.femaleAthletes,
+                r.coaches,
+                r.otherAthletes,
+                r.otherOfficials,
                 r.totalGold,
                 r.totalSilver,
                 r.totalBronze,
+                r.totalMedal,
                 r.ranking
             ].join(" ");
 
@@ -3506,9 +3709,14 @@ function renderMedalStandings(){
             ${rows.map(r => `
                 <tr>
                     <td class="medal-standing-unit-cell">
-                        ${esc(r.noc)}
+                        <span class="medal-unit-main">${esc(r.noc)}</span>
+
                         <span class="medal-unit-sub">
-                            Athletes: ${r.athletes || 0} · Delegation: ${r.delegation || 0}
+                            <span class="medal-unit-total">Total: ${r.total || 0}</span><br>
+                            <span class="medal-unit-coach">Coach: ${r.coaches || 0}</span><br>
+                            <span class="medal-unit-male">Male Ath: ${r.maleAthletes || 0}</span><br>
+                            <span class="medal-unit-female">Female Ath: ${r.femaleAthletes || 0}</span><br>
+                            <span class="medal-unit-other">Official: ${(r.otherAthletes || 0) + (r.otherOfficials || 0)}</span>
                         </span>
                     </td>
 
@@ -3526,6 +3734,10 @@ function renderMedalStandings(){
 
                     <td class="medal-standing-total medal-standing-bronze">
                         ${r.totalBronze}
+                    </td>
+
+                    <td class="medal-standing-total">
+                        ${r.totalMedal || 0}
                     </td>
 
                     <td class="medal-standing-rank">${r.ranking}</td>
