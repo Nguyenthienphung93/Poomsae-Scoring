@@ -8,9 +8,14 @@ from collections import defaultdict
 # ================== CONFIG ==================
 SUPABASE_URL = "https://zrtcilmboikavgesdwuh.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpydGNpbG1ib2lrYXZnZXNkd3VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NjM2NDEsImV4cCI6MjA5NDMzOTY0MX0.HyyVu8ygZgCaupx0GGnQHuc9VuT72KjP_IMF5vrRDQk"
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 RESULT_TABLE = "Result"  # đổi nếu bảng Supabase của Ken tên khác, ví dụ: match_result/results
 # Bảng danh sách VĐV/đoàn trong Supabase
 # Sam để fallback vì có nơi đặt là "Information list", có nơi gõ thiếu r là "Infomation list"
+SIGMA_EVENTS_TABLE = "sigma_events"
+ACTIVE_EVENT_CODE = os.environ.get("ACTIVE_EVENT_CODE", "").strip()
+SIGMA_DIVISIONS_TABLE = "sigma_divisions"
+
 INFORMATION_TABLE_CANDIDATES = [
     "Information Lists",
     "Information lists",
@@ -34,12 +39,125 @@ SETUP_FILE = os.path.join(
     "Open Taekwondo Championships 2026.json"
 )
 
-def load_setup():
+def make_event_code(name):
+    text = str(name or "").strip().lower()
+    text = re.sub(r"[^a-z0-9]+", "_", text)
+    text = text.strip("_")
+    return text or "active_event"
+
+
+def read_local_json(path, default=None):
     try:
-        with open(SETUP_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
+        if path and os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"Read local JSON error {path}:", e)
+
+    return default if default is not None else {}
+
+
+def load_active_sigma_event():
+    try:
+        query = supabase.table(SIGMA_EVENTS_TABLE).select("*")
+
+        if ACTIVE_EVENT_CODE:
+            res = query.eq("event_code", ACTIVE_EVENT_CODE).limit(1).execute()
+        else:
+            res = (
+                query
+                .eq("is_active", True)
+                .order("updated_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+
+        rows = res.data or []
+        if rows:
+            return rows[0]
+
+    except Exception as e:
+        print("Load active sigma_events error:", e)
+
+    return None
+
+def load_sigma_divisions_from_supabase(event_code):
+    try:
+        if not event_code:
+            return {}
+
+        res = (
+            supabase
+            .table(SIGMA_DIVISIONS_TABLE)
+            .select("division_key, athletes")
+            .eq("event_code", event_code)
+            .execute()
+        )
+
+        rows = res.data or []
+        divisions = {}
+
+        for r in rows:
+            key = str(r.get("division_key") or "").strip()
+            athletes = r.get("athletes") or []
+
+            if key:
+                divisions[key] = athletes
+
+        return divisions
+
+    except Exception as e:
+        print("Load sigma_divisions error:", e)
         return {}
+
+def load_setup():
+    # 1. Ưu tiên Supabase
+    row = load_active_sigma_event()
+    if row:
+        setup = row.get("setup") or {}
+        if isinstance(setup, dict) and setup:
+            return setup
+
+    # 2. Fallback JSON cứng
+    candidates = [
+        SETUP_FILE,
+        os.path.join(os.path.dirname(__file__), "Setup", "current_event.json"),
+    ]
+
+    for path in candidates:
+        data = read_local_json(path, {})
+        if data:
+            return data
+
+    return {}
+
+
+def load_event_json():
+    # 1. Ưu tiên Supabase: sigma_events + sigma_divisions
+    row = load_active_sigma_event()
+
+    if row:
+        setup = row.get("setup") or {}
+        event_code = row.get("event_code") or ACTIVE_EVENT_CODE
+        event_name = row.get("event_name") or setup.get("event") or "Event"
+
+        divisions = load_sigma_divisions_from_supabase(event_code)
+
+        if divisions:
+            return {
+                "event_name": event_name,
+                "divisions": divisions
+            }
+
+    # 2. Fallback JSON cứng
+    data = read_local_json(JSON_FILE, {})
+    if data:
+        return data
+
+    return {
+        "event_name": "Event",
+        "divisions": {}
+    }
 
 @app.route("/icon/<path:filename>")
 def icon_files(filename):
@@ -47,7 +165,6 @@ def icon_files(filename):
         os.path.join(os.path.dirname(__file__), "icon"),
         filename
     )
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 TYPE_ALIASES = {
     "recognized": "Recognized",
@@ -99,9 +216,6 @@ def parse_division_key(key: str):
     age = re.sub(r"\s+", " ", age).strip(" -")
     return {"key": key, "type": typ, "division": division, "age": age or "Open", "gender": gender}
 
-def load_event_json():
-    with open(JSON_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
 
 def build_menu():
     data = load_event_json()
