@@ -400,7 +400,7 @@ INDEX_HTML = r"""
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#07111f;color:#eef6ff}
 .topbar{
-    min-height:118px;
+    min-height:126px;
     height:auto;
     display:grid;
     grid-template-columns:180px minmax(0,1fr) 180px;
@@ -1160,10 +1160,10 @@ tr:hover td{background:#102b46}
 
 .event-meta{
     display:flex;
+    flex-direction:column;
     align-items:center;
     justify-content:center;
-    gap:10px;
-    flex-wrap:wrap;
+    gap:5px;
     margin-top:8px;
 }
 
@@ -1172,12 +1172,19 @@ tr:hover td{background:#102b46}
     align-items:center;
     justify-content:center;
     gap:8px;
-    min-height:26px;
-    padding:3px 12px;
+    min-height:25px;
+    padding:3px 13px;
     border:1px solid rgba(255,211,77,.35);
     border-radius:999px;
     background:rgba(3,21,45,.45);
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
+    box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.04),
+        0 3px 10px rgba(0,0,0,.18);
+}
+
+.event-meta-row.venue-row{
+    border-color:rgba(127,231,255,.32);
+    background:rgba(3,28,55,.42);
 }
 
 .event-meta-label{
@@ -2192,14 +2199,14 @@ body.sigma-result-mode.sidebar-open .sidebar-toggle-btn{
 
       <div class="event-meta">
           {% if event_date %}
-          <div class="event-meta-row">
+          <div class="event-meta-row date-row">
               <span class="event-meta-label">Dates</span>
               <span class="header-date">{{ event_date }}</span>
           </div>
           {% endif %}
 
           {% if event_location %}
-          <div class="event-meta-row">
+          <div class="event-meta-row venue-row">
               <span class="event-meta-label">Venue</span>
               <span class="header-location">{{ event_location }}</span>
           </div>
