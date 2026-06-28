@@ -3,6 +3,7 @@ from supabase import create_client, Client
 import json
 import os
 import re
+from datetime import datetime
 from collections import defaultdict
 
 # ================== CONFIG ==================
@@ -45,6 +46,78 @@ def make_event_code(name):
     text = text.strip("_")
     return text or "active_event"
 
+MONTH_NAMES = {
+    1: "January",
+    2: "February",
+    3: "March",
+    4: "April",
+    5: "May",
+    6: "June",
+    7: "July",
+    8: "August",
+    9: "September",
+    10: "October",
+    11: "November",
+    12: "December",
+}
+
+
+def parse_event_date(value):
+    text = str(value or "").strip()
+    if not text:
+        return None
+
+    formats = [
+        "%d/%m/%Y",
+        "%d-%m-%Y",
+        "%Y-%m-%d",
+        "%d/%m/%y",
+        "%d-%m-%y",
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(text, fmt)
+        except Exception:
+            pass
+
+    return None
+
+
+def format_event_date_range(date_from, date_to):
+    start = parse_event_date(date_from)
+    end = parse_event_date(date_to)
+
+    # Nếu không parse được thì fallback dữ liệu gốc
+    if not start and not end:
+        return str(date_from or "").strip()
+
+    if start and not end:
+        return f"{start.day} {MONTH_NAMES[start.month]} {start.year}"
+
+    if end and not start:
+        return f"{end.day} {MONTH_NAMES[end.month]} {end.year}"
+
+    # Cùng ngày
+    if start.date() == end.date():
+        return f"{start.day} {MONTH_NAMES[start.month]} {start.year}"
+
+    # Cùng tháng, cùng năm: 22–24 May 2026
+    if start.month == end.month and start.year == end.year:
+        return f"{start.day}–{end.day} {MONTH_NAMES[start.month]} {start.year}"
+
+    # Khác tháng, cùng năm: 22 April – 24 May 2026
+    if start.year == end.year:
+        return (
+            f"{start.day} {MONTH_NAMES[start.month]} – "
+            f"{end.day} {MONTH_NAMES[end.month]} {end.year}"
+        )
+
+    # Khác năm: 22 December 2026 – 5 January 2027
+    return (
+        f"{start.day} {MONTH_NAMES[start.month]} {start.year} – "
+        f"{end.day} {MONTH_NAMES[end.month]} {end.year}"
+    )
 
 def read_local_json(path, default=None):
     try:
@@ -1074,26 +1147,59 @@ tr:hover td{background:#102b46}
 }
 .header-title{
     color:#FF8F0F;
-    font-size:60px;
+    font-size:clamp(34px, 4.2vw, 60px);
     font-weight:900;
-    letter-spacing:1px;
+    letter-spacing:1.4px;
+    line-height:1.05;
+    text-transform:uppercase;
     text-shadow:
-        0 0 8px rgba(255,255,255,.35),
-        0 0 20px rgba(0,180,255,.25);
+        0 2px 0 rgba(0,30,70,.9),
+        0 0 10px rgba(255,255,255,.38),
+        0 0 22px rgba(0,180,255,.25);
+}
+
+.event-meta{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:8px;
+}
+
+.event-meta-row{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-height:26px;
+    padding:3px 12px;
+    border:1px solid rgba(255,211,77,.35);
+    border-radius:999px;
+    background:rgba(3,21,45,.45);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
+}
+
+.event-meta-label{
+    color:#ffd34d;
+    font-size:12px;
+    font-weight:900;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
 }
 
 .header-date{
-    color:#ffd54a;
-    font-size:18px;
-    font-weight:700;
-    margin-top:4px;
+    color:#ffffff;
+    font-size:16px;
+    font-weight:900;
+    letter-spacing:.3px;
 }
 
 .header-location{
     color:#7fe7ff;
-    font-size:18px;
-    font-weight:700;
-    margin-top:4px;
+    font-size:16px;
+    font-weight:900;
+    letter-spacing:.2px;
 }
 .genderHead{
     width:100%;
@@ -2084,12 +2190,20 @@ body.sigma-result-mode.sidebar-open .sidebar-toggle-btn{
   <div class="eventTitle">
       <h1 class="header-title">{{ event_name }}</h1>
 
-      <div class="header-date">
-          {{ event_date }}
-      </div>
+      <div class="event-meta">
+          {% if event_date %}
+          <div class="event-meta-row">
+              <span class="event-meta-label">Dates</span>
+              <span class="header-date">{{ event_date }}</span>
+          </div>
+          {% endif %}
 
-      <div class="header-location">
-          {{ event_location }}
+          {% if event_location %}
+          <div class="event-meta-row">
+              <span class="event-meta-label">Venue</span>
+              <span class="header-location">{{ event_location }}</span>
+          </div>
+          {% endif %}
       </div>
   </div>
   <div class="rightBlank"></div>
@@ -5764,11 +5878,7 @@ def index():
     date_from = setup.get("date_from", "")
     date_to = setup.get("date_to", "")
 
-    event_date = (
-        f"{date_from} - {date_to}"
-        if date_from and date_to
-        else date_from
-    )
+    event_date = format_event_date_range(date_from, date_to)
 
     return render_template_string(
         INDEX_HTML,
