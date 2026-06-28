@@ -969,8 +969,25 @@ tr:hover td{background:#102b46}
 .layout.result-mode .sigma-bracket{flex:1;min-height:0}
 .layout.result-mode .sigma-svg{height:100%;min-height:640px}
 .sigma-view{margin-top:10px;border:1px solid #24527a;border-radius:14px;padding:14px;background:#06192b}
-.sigma-title-row{display:grid;grid-template-columns:120px 1fr 120px;align-items:center;margin-bottom:16px}
-.sigma-title{text-align:center;color:#ffd34d;font-size:30px;font-weight:900;letter-spacing:3px;margin:0}
+.sigma-title-row{
+    display:grid;
+    grid-template-columns:120px 1fr 120px;
+    align-items:center;
+    margin-bottom:22px;
+    padding-top:6px;
+}
+.sigma-title{
+    text-align:center;
+    color:#ffd34d;
+    font-size:38px;
+    font-weight:900;
+    letter-spacing:4px;
+    margin:0;
+    line-height:1.05;
+    text-shadow:
+        0 2px 0 rgba(0,0,0,.55),
+        0 0 12px rgba(255,211,77,.25);
+}
 .sigma-bracket{display:block;width:100%;overflow:hidden;padding:0}
 .sigma-svg{width:100%;height:640px;display:block;background:#06192b;border:1px solid #24527a;border-radius:12px}
 .sigma-svg-box{fill:#08233c;stroke:#2f6fa3;stroke-width:1.8}
@@ -2367,10 +2384,12 @@ body.sigma-result-mode.sidebar-open .sidebar-toggle-btn{
             <div id="sigmaDivisionTitle"
                  style="
                     color:#cfe6ff;
-                    font-size:18px;
-                    font-weight:700;
-                    margin-top:6px;
+                    font-size:23px;
+                    font-weight:900;
+                    margin-top:8px;
                     letter-spacing:1px;
+                    line-height:1.15;
+                    text-shadow:0 2px 0 rgba(0,0,0,.4);
                  ">
             </div>
         </div>
